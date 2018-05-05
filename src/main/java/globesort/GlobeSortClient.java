@@ -38,15 +38,30 @@ public class GlobeSortClient {
         this.serverStr = ip + ":" + port;
     }
 
-    public void run(Integer[] values) throws Exception {
+    public long run(Integer[] values) throws Exception {
         System.out.println("Pinging " + serverStr + "...");
+
+        long startTime = System.nanoTime();
         serverStub.ping(Empty.newBuilder().build());
+
+        long elapsedTime = System.nanoTime() - startTime;
+        System.out.println("Total Ping Time: " + elapsedTime + " ns");
+        System.out.println("Half Ping Time: " + elapsedTime / 2.0 + " ns");
+
+
         System.out.println("Ping successful.");
 
         System.out.println("Requesting server to sort array");
         IntArray request = IntArray.newBuilder().addAllValues(Arrays.asList(values)).build();
-        IntArray response = serverStub.sortIntegers(request);
+        ServResponse response = serverStub.sortIntegers(request);
+
+        SortTime sortTime = response.getSortTime();
+        long timeToSort = sortTime.getSortTime();
+
+        System.out.println("Sort on Server Time taken: " + timeToSort + " ns");
+  		
         System.out.println("Sorted array");
+        return timeToSort;
     }
 
     public void shutdown() throws InterruptedException {
@@ -83,18 +98,28 @@ public class GlobeSortClient {
     }
 
     public static void main(String[] args) throws Exception {
+    	long startTime = System.nanoTime();
         Namespace cmd_args = parseArgs(args);
         if (cmd_args == null) {
             throw new RuntimeException("Argument parsing failed");
         }
-
-        Integer[] values = genValues(cmd_args.getInt("num_values"));
+        int numValues = cmd_args.getInt("num_values");
+        Integer[] values = genValues(numValues);
 
         GlobeSortClient client = new GlobeSortClient(cmd_args.getString("server_ip"), cmd_args.getInt("server_port"));
         try {
-            client.run(values);
+            timeToSort = client.run(values);
         } finally {
             client.shutdown();
         }
+
+        long elapsedTime = System.nanoTime() - startTime;
+
+        System.out.println("Total Application Throughput Time: " + elapsedTime + " ns");
+        System.out.println("Application Throughput Time: " + elapsedTime*1.0/numValues + " number of integers sorted per second");
+
+        System.out.println("Total Network Throughput: " + (elapsedTime-timeToSort) + " ns");
+  		System.out.println("One Way Network Throughput: " + (elapsedTime -timeToSort)/2.0 + " ns");
+
     }
 }
