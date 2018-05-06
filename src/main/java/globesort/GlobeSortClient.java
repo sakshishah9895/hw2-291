@@ -57,7 +57,7 @@ public class GlobeSortClient {
         ServResponse response = serverStub.sortIntegers(request);
 
         SortTime sortTime = response.getSortTime();
-        long timeToSort = sortTime.getSortTime();
+        timeToSort = sortTime.getSortTime();
 
         System.out.println("Sort on Server Time taken: " + timeToSort/(1e9) + " sec");
   		
