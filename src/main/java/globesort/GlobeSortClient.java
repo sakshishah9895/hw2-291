@@ -21,7 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class GlobeSortClient {
-
+	static long timeToSort;
     private final ManagedChannel serverChannel;
     private final GlobeSortGrpc.GlobeSortBlockingStub serverStub;
 
@@ -38,15 +38,16 @@ public class GlobeSortClient {
         this.serverStr = ip + ":" + port;
     }
 
-    public long run(Integer[] values) throws Exception {
+    public void run(Integer[] values) throws Exception {
         System.out.println("Pinging " + serverStr + "...");
 
         long startTime = System.nanoTime();
         serverStub.ping(Empty.newBuilder().build());
 
         long elapsedTime = System.nanoTime() - startTime;
-        System.out.println("Total Ping Time: " + elapsedTime + " ns");
-        System.out.println("Half Ping Time: " + elapsedTime / 2.0 + " ns");
+        System.out.println("Total Ping Time: " + elapsedTime/ (1e9) + " sec");
+        //System.out.println("Half Ping Time: " + elapsedTime / 2.0 + " ns");
+        System.out.println("Half Ping Time: " + (elapsedTime / 2.0) / (1e9) + " sec");
 
 
         System.out.println("Ping successful.");
@@ -58,10 +59,10 @@ public class GlobeSortClient {
         SortTime sortTime = response.getSortTime();
         long timeToSort = sortTime.getSortTime();
 
-        System.out.println("Sort on Server Time taken: " + timeToSort + " ns");
+        System.out.println("Sort on Server Time taken: " + timeToSort/(1e9) + " sec");
   		
         System.out.println("Sorted array");
-        return timeToSort;
+        
     }
 
     public void shutdown() throws InterruptedException {
@@ -108,18 +109,23 @@ public class GlobeSortClient {
 
         GlobeSortClient client = new GlobeSortClient(cmd_args.getString("server_ip"), cmd_args.getInt("server_port"));
         try {
-            timeToSort = client.run(values);
+          client.run(values);
         } finally {
             client.shutdown();
         }
 
         long elapsedTime = System.nanoTime() - startTime;
+        long totalIntegers = values.length;
 
-        System.out.println("Total Application Throughput Time: " + elapsedTime + " ns");
-        System.out.println("Application Throughput Time: " + elapsedTime*1.0/numValues + " number of integers sorted per second");
+        double elapsedTimeinSeconds = (double) elapsedTime / (1e9);
+        System.out.println("Total Application Throughput Time: " + elapsedTimeinSeconds + " sec");
+        System.out.println("Total integers sorted per second: " + (1.0 * totalIntegers) / elapsedTimeinSeconds);
 
-        System.out.println("Total Network Throughput: " + (elapsedTime-timeToSort) + " ns");
-  		System.out.println("One Way Network Throughput: " + (elapsedTime -timeToSort)/2.0 + " ns");
+        long networkThroughputTime = elapsedTime - timeToSort;
+        System.out.println("Total 2 way Network Throughput time: " + networkThroughputTime / (1e9) + " sec");
+        System.out.println("1 way Network Throughput time: " + (networkThroughputTime / 2.0) / (1e9) + " sec");
+
+        
 
     }
 }
